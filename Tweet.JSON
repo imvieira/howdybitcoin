@@ -1,0 +1,215 @@
+[
+    {
+        "id": "4a032b6a.3232dc",
+        "type": "comment",
+        "z": "d027856e.4afd",
+        "name": "Bitcoin Feeling World ",
+        "info": "",
+        "x": 120,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "fc1bafc7.15ed08",
+        "type": "websocket out",
+        "z": "d027856e.4afd",
+        "name": "REST",
+        "server": "5cf9986e.c0a6",
+        "client": "",
+        "x": 710,
+        "y": 280,
+        "wires": []
+    },
+    {
+        "id": "b2e5416a.62da18",
+        "type": "websocket in",
+        "z": "d027856e.4afd",
+        "name": "REST",
+        "server": "5cf9986e.c0a6",
+        "client": "",
+        "x": 170,
+        "y": 320,
+        "wires": [
+            [
+                "59738a0e.f89df4"
+            ]
+        ]
+    },
+    {
+        "id": "59738a0e.f89df4",
+        "type": "function",
+        "z": "d027856e.4afd",
+        "name": "Get Global context",
+        "func": "// The received message is stored in 'msg'\n// It will have at least a 'payload' property:\n// console.log(msg.payload);\n// The 'context' object is available to store state\n// between invocations of the function\n// context = {};\n\nmsg.payload = context.global.location;\nreturn msg;",
+        "outputs": "1",
+        "noerr": 0,
+        "x": 370,
+        "y": 320,
+        "wires": [
+            [
+                "fc1bafc7.15ed08"
+            ]
+        ]
+    },
+    {
+        "id": "6597da89.1b389c",
+        "type": "template",
+        "z": "d027856e.4afd",
+        "name": "HTML output",
+        "field": "payload",
+        "fieldType": "msg",
+        "format": "handlebars",
+        "syntax": "mustache",
+        "template": "<!DOCTYPE html>\n<html> \n\n<head>\n <title>Sentiment Crypto Map</title>\n <script src=\"http://use.edgefonts.net/antic-didone:n4:all.js\"></script>\n <script type=\"text/javascript\" src=\"http://ajax.googleapis.com/ajax/libs/jquery/1.6.4/jquery.min.js\"></script>\n <script type=\"text/javascript\" src=\"http://maps.google.com/maps/api/js?sensor=true\"></script>\n <script type=\"text/javascript\" src=\"http://yourjavascript.com/4594301102/gmaps.js\"></script>\n <script type=\"text/javascript\" src=\"http://yourjavascript.com/190225905/autolinker-min.js\"></script>\n <style type=\"text/css\" media=\"screen\">\n #map {\n position: absolute;\n top: 0;\n bottom: 0;\n left: 0;\n right: 0;\n }\n \n #content {\n font-size: 10px;\n }\n \n p {\n font-family: verdana;\n text-align: center\n }\n \n .maptitle {\n position: absolute;\n border-radius: 10px;\n top: .3em;\n right: .3em;\n color: white;\n background: black;\n opacity: 0.7;\n padding: 0 10px;\n }\n \n .titletext {\n font-family: antic-didone;\n font-size: 3em;\n font-weight: 100;\n margin-top: 0;\n margin-bottom: 0;\n line-height: 1em;\n }\n \n .subtitle {\n color: darkolivegreen;\n font-size: .8em;\n line-height: .3em;\n vertical-align: middle;\n }\n \n .credit {\n position: absolute;\n bottom: 0;\n left: 10em;\n font-size: .6em;\n color: #222;\n }\n \n .legend {\n font-size: .6em;\n color: #000;\n }\n </style>\n</head>\n\n<body>\n\n <div id=\"map\"></div>\n <div class=maptitle>\n <div class=subtitle>\n    <p> contact: igormonteirovieira@gmail.com</p>\n <p>Sentiment (negative to positive)</p>\n </div>\n <div class=legend>\n <p>Sentiment:\n <br>\n <img src=\"http://demo-nodered-sam.mybluemix.net/images/tweet-r2.png\">\n <img src=\"http://demo-nodered-sam.mybluemix.net/images/tweet-r1.png\">\n <img src=\"http://demo-nodered-sam.mybluemix.net/images/tweet-w.png\">\n <img src=\"http://demo-nodered-sam.mybluemix.net/images/tweet-g1.png\">\n <img src=\"http://demo-nodered-sam.mybluemix.net/images/tweet-g2.png\">\n </p>\n </div>\n </div>\n <div class=credit>\n \n </div>\n <script type=\"text/javascript\">\n var geocoder = new google.maps.Geocoder();\n var autolinker = new Autolinker( {\n newWindow : true,\n truncate : 30\n } );\n \n var socketaddy = \"ws://{{req.headers.host}}/ws/location\";\n var map;\n var sock;\n $(document).ready(function()\n {\n // Houston Lat Long in Degrees\n // Latitude: 29.7632836\n // Longitude: -95.3632715 \n map = new GMaps({\n div: '#map',\n //lat: -12.043333,\n //lng: -77.028333,\n lat: 29.7632836,\n lng: -95.3632715,\n minZoom: 3\n });\n \n // Use HTML5 geolocation if user allows it.\n if (navigator.geolocation)\n {\n navigator.geolocation.getCurrentPosition(function(position) {\n var pos = {\n lat: position.coords.latitude,\n lng: position.coords.longitude\n };\n\n map.setCenter(pos);\n });\n }\n\n \n map.setZoom (3);\n \n sock = new WebSocket(socketaddy);\n sock.onopen = function()\n {\n console.log(\"WebSocket - Connected\");\n console.log(\"WebSocket - Sending ping\");\n sock.send(\"Ping.\");\n console.log(\"WebSocket - Ping sent\");\n };\n sock.onerror = function()\n {\n console.log(\"WebSocket - Error\");\n };\n sock.onmessage = function(evt)\n {\n var msgparse = JSON.parse(evt.data);\n console.log (\"User: @\" + msgparse.user);\n console.log (msgparse.location );\n \n GMaps.geocode({\n address: msgparse.location,\n callback: function(results, status)\n {\n if (status == 'OK')\n {\n var latlng = results[0].geometry.location;\n // map.removeMarkers();\n \t// map.setCenter(latlng[0].lat, latlng[0].lng);\n // Create marker\n var infoWindow = new google.maps.InfoWindow({ \n content: '<b>heading</b><br>more text'\n });\n \n var infoText = '<b>@' + msgparse.user + ':</b>&nbsp;' + \n '<div id=content>' + msgparse.tweet + '</div>'\n var html = autolinker.link( infoText );\n \n // Sets the Default Tweet Icon\n var iconfile = 'http://demo-nodered-sam.mybluemix.net/images/tweet';\n var sentimentScore = msgparse.sentiment.score == \"\" ? 0 : parseFloat (msgparse.sentiment.score);\n \n // User NodeRed Sentiment\n if (sentimentScore < -6.0) \n iconfile += '-r2'\n else if (sentimentScore < -2.0)\n iconfile += '-r1'\n else if (sentimentScore >= -2.0 && sentimentScore < 2.0)\n iconfile += '-w'\n else if (sentimentScore >= 2.0 && sentimentScore < 6.0)\n iconfile += '-g1'\n else if (sentimentScore >= 6.0)\n iconfile += '-g2';\n \n iconfile += '.png';\n console.log ('sentiment ' + JSON.stringify(msgparse.sentiment) + ' score: ' + sentimentScore);\n console.log ('--> icon=' + iconfile);\n var marker = map.addMarker({\n lat: latlng.lat(),\n lng: latlng.lng(),\n title: msgparse.user,\n infoWindow: {\n content: html,\n maxWidth: 300\n },\n icon: iconfile\n });\n console.log (\"added marker: \" + marker.title);\n // map.setCenter(latlng.lat(), latlng.lng());\n }\n else\n {\n console.log (\"GMaps.geocode unsuccessful\");\n }\n }\n });\n console.log (msgparse.tweet);\n }\n });\n </script>\n</body>\n\n</html>",
+        "output": "str",
+        "x": 350,
+        "y": 420,
+        "wires": [
+            [
+                "3b92ce8f.9e0682"
+            ]
+        ]
+    },
+    {
+        "id": "3b92ce8f.9e0682",
+        "type": "http response",
+        "z": "d027856e.4afd",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 590,
+        "y": 420,
+        "wires": []
+    },
+    {
+        "id": "183514de.02a1d3",
+        "type": "http in",
+        "z": "d027856e.4afd",
+        "name": "",
+        "url": "/btc",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 180,
+        "y": 400,
+        "wires": [
+            [
+                "6597da89.1b389c"
+            ]
+        ]
+    },
+    {
+        "id": "a579703d.cb08a8",
+        "type": "function",
+        "z": "d027856e.4afd",
+        "name": "Load map json",
+        "func": "// Alchemy Method\n//var sentiment;\n//if (msg.features === undefined) \n// sentiment = \"\"\n//else\n// sentiment = msg.features[\"doc-sentiment\"];\n\n// NodeRed Sentiment Method\nvar sentiment = msg.sentiment; //.score\n\nvar msg2 = { payload : {\n\t\tuser: msg.tweet.user.screen_name,\n\t\tlocation: msg.location === undefined ? \"\" : msg.location.place,\n\t\tlang : msg.lang,\n\t\tsentiment: sentiment,\n\t\ttweet: msg.tweet.text}\n\t};\n\n// The received message is stored in 'msg'\n// It will have at least a 'payload' property:\n// console.log(msg.payload);\n// The 'context' object is available to store state\n// between invocations of the function\n// context = {};\ncontext.global.location = msg2.payload;\nreturn msg2;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 400,
+        "y": 260,
+        "wires": [
+            [
+                "fc1bafc7.15ed08",
+                "9bdb8243.4b13e"
+            ]
+        ]
+    },
+    {
+        "id": "fa5a4bb0.18c62",
+        "type": "function",
+        "z": "d027856e.4afd",
+        "name": "Set Payload=Tweet",
+        "func": "msg.payload = msg.tweet.text;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 310,
+        "y": 140,
+        "wires": [
+            [
+                "a7d87291.216e8"
+            ]
+        ]
+    },
+    {
+        "id": "699f8ff4.fbd98",
+        "type": "function",
+        "z": "d027856e.4afd",
+        "name": "set _id",
+        "func": "msg._id = msg.tweet.id_str;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 630,
+        "y": 140,
+        "wires": [
+            [
+                "d2543860.513148"
+            ]
+        ]
+    },
+    {
+        "id": "a7d87291.216e8",
+        "type": "sentiment",
+        "z": "d027856e.4afd",
+        "name": "sentiment",
+        "x": 480,
+        "y": 140,
+        "wires": [
+            [
+                "a579703d.cb08a8",
+                "699f8ff4.fbd98"
+            ]
+        ]
+    },
+    {
+        "id": "d2543860.513148",
+        "type": "cloudant out",
+        "z": "d027856e.4afd",
+        "name": "",
+        "cloudant": "",
+        "database": "tweet_map",
+        "service": "hackig-cloudantNoSQLDB",
+        "payonly": false,
+        "operation": "insert",
+        "x": 730,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "9bdb8243.4b13e",
+        "type": "debug",
+        "z": "d027856e.4afd",
+        "name": "",
+        "active": true,
+        "console": "false",
+        "complete": "false",
+        "x": 310,
+        "y": 20,
+        "wires": []
+    },
+    {
+        "id": "e9cbbff5.e9ad",
+        "type": "twitter in",
+        "z": "d027856e.4afd",
+        "twitter": "",
+        "tags": "$btc, bitcoin",
+        "user": "false",
+        "name": "",
+        "topic": "tweets",
+        "inputs": 0,
+        "x": 71.5,
+        "y": 173,
+        "wires": [
+            [
+                "fa5a4bb0.18c62"
+            ]
+        ]
+    },
+    {
+        "id": "5cf9986e.c0a6",
+        "type": "websocket-listener",
+        "z": "",
+        "path": "/ws/location",
+        "wholemsg": "false"
+    }
+]
