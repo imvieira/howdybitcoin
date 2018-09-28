@@ -1,1 +1,3 @@
-![a](https://github.com/imvieira/howdybitcoin/blob/master/Screen%20Shot%202018-09-28%20at%2008.33.30.png)
+![Kibana](https://github.com/imvieira/thesentimentgauge/blob/master/Kibana.png)
+![Nodered](https://github.com/imvieira/thesentimentgauge/blob/master/Node-Red.png)
+![serverless](https://github.com/imvieira/thesentimentgauge/blob/master/Serverless%20IBM%20Cloud%20instance.png)
